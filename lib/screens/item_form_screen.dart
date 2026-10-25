@@ -38,6 +38,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   DateTime? _date;
   late int _minutes;
   late int _day;
+  late Set<String> _paid;
   int? _reminder;
   bool _initialized = false;
 
@@ -63,6 +64,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
             : 9 * 60);
     _day = i?.recurrenceDay ?? DateTime.now().day;
     _reminder = i?.reminderMinutes;
+    _paid = {...?i?.paidMonths};
   }
 
   @override
@@ -153,7 +155,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
       recurrenceDay: _day,
       dueMinutes: _minutes,
       amount: amount,
-      paidMonths: old?.paidMonths ?? const {},
+      paidMonths: recurring ? _paid : (old?.paidMonths ?? const {}),
     );
     await store.upsert(item);
     if (mounted) Navigator.of(context).pop();
@@ -339,6 +341,17 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                           ?.copyWith(color: t.colorScheme.onSurfaceVariant),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  _Label('Meses já pagos'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, left: 2),
+                    child: Text(
+                      'Toque no mês para marcar que já foi pago, inclusive meses à frente.',
+                      style: t.textTheme.bodySmall
+                          ?.copyWith(color: t.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                  _paidMonthChips(),
                 ],
                 if (!purchase) ...[
                 const SizedBox(height: 20),
@@ -373,6 +386,37 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
         ItemKind.task => 'tarefa',
         ItemKind.recurring => 'compromisso recorrente',
       };
+
+  /// Do mês retrasado até 11 meses à frente; toque alterna pago/não pago.
+  Widget _paidMonthChips() {
+    final now = DateTime.now();
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (var k = -2; k <= 11; k++)
+          Builder(builder: (_) {
+            final m = DateTime(now.year, now.month + k);
+            final key = monthKey(m);
+            final paid = _paid.contains(key);
+            return FilterChip(
+              showCheckmark: true,
+              selected: paid,
+              label: Text(k == 0
+                  ? '${monthYear(m)} · atual'
+                  : monthYear(m)),
+              onSelected: (v) => setState(() {
+                if (v) {
+                  _paid.add(key);
+                } else {
+                  _paid.remove(key);
+                }
+              }),
+            );
+          }),
+      ],
+    );
+  }
 
   ButtonStyle _outlined() => OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(56),

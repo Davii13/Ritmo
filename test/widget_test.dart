@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ritmo/app.dart';
@@ -148,5 +149,34 @@ void main() {
     await tester.tap(find.text('Recorrentes').last);
     await tester.pumpAndSettle();
     expect(find.text('Nenhum compromisso recorrente'), findsOneWidget);
+  });
+
+  testWidgets('marcar o mês atual como pago no cadastro tira o atraso',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await initializeDateFormatting('pt_BR');
+    final store = await RitmoStore.load(database: memoryDb());
+    await tester.pumpWidget(
+        RitmoApp(store: store, notifications: NotificationService()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Recorrentes').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Novo compromisso').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Aluguel');
+    final atual = find.textContaining('· atual');
+    await tester.dragUntilVisible(
+        atual, find.byType(ListView).last, const Offset(0, -200));
+    await tester.tap(atual);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    final item = store.items.single;
+    expect(item.title, 'Aluguel');
+    expect(item.paidMonths, contains(monthKey(DateTime.now())));
+    expect(item.isOverdue(DateTime.now()), isFalse);
   });
 }

@@ -25,6 +25,9 @@ String longDate(DateTime d) =>
 
 String monthName(DateTime d) => DateFormat('MMMM', _locale).format(d);
 
+/// "out. 2026"
+String monthYear(DateTime d) => DateFormat('MMM yyyy', _locale).format(d);
+
 String hourMinute(DateTime d) => DateFormat('HH:mm', _locale).format(d);
 
 String minutesToClock(int minutes) =>
